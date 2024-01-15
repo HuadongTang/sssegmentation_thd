@@ -48,7 +48,7 @@ class MCIBI(BaseSegmentor):
             }
             self.context_within_image_module = supported_context_modules[context_within_image_cfg['type']](**cwi_cfg)
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(head_cfg['in_channels'], head_cfg['feats_channels'], kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(head_cfg['feats_channels'] * len(head_cfg['in_channels_list'], head_cfg['feats_channels'], kernel_size=3, stride=1, padding=1, bias=False),
             BuildNormalization(placeholder=head_cfg['feats_channels'], norm_cfg=norm_cfg),
             BuildActivation(act_cfg),
         )
@@ -72,6 +72,34 @@ class MCIBI(BaseSegmentor):
             nn.Dropout2d(head_cfg['dropout']),
             nn.Conv2d(head_cfg['out_channels'], cfg['num_classes'], kernel_size=1, stride=1, padding=0)
         )
+        # build pyramid pooling module
+        ppm_cfg = {
+            'in_channels': head_cfg['in_channels_list'][-1],
+            'out_channels': head_cfg['feats_channels'],
+            'pool_scales': head_cfg['pool_scales'],
+            'align_corners': align_corners,
+            'norm_cfg': copy.deepcopy(norm_cfg),
+            'act_cfg': copy.deepcopy(act_cfg),
+        }
+        self.ppm_net = PyramidPoolingModule(**ppm_cfg)
+        # build lateral convs
+        act_cfg_copy = copy.deepcopy(act_cfg)
+        if 'inplace' in act_cfg_copy: act_cfg_copy['inplace'] = False
+        self.lateral_convs = nn.ModuleList()
+        for in_channels in head_cfg['in_channels_list'][:-1]:
+            self.lateral_convs.append(nn.Sequential(
+                nn.Conv2d(in_channels, head_cfg['feats_channels'], kernel_size=1, stride=1, padding=0, bias=False),
+                BuildNormalization(placeholder=head_cfg['feats_channels'], norm_cfg=norm_cfg),
+                BuildActivation(act_cfg_copy),
+            ))
+        # build fpn convs
+        self.fpn_convs = nn.ModuleList()
+        for in_channels in [head_cfg['feats_channels'], ] * len(self.lateral_convs):
+            self.fpn_convs.append(nn.Sequential(
+                nn.Conv2d(in_channels, head_cfg['feats_channels'], kernel_size=3, stride=1, padding=1, bias=False),
+                BuildNormalization(placeholder=head_cfg['feats_channels'], norm_cfg=norm_cfg),
+                BuildActivation(act_cfg_copy),
+            ))
         # build auxiliary decoder
         self.setauxiliarydecoder(cfg['auxiliary'])
         # freeze normalization layer if necessary
