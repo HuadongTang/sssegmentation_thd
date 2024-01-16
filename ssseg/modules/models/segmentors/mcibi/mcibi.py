@@ -51,7 +51,7 @@ class MCIBI(BaseSegmentor):
             nn.Conv2d(head_cfg['feats_channels'] * len(head_cfg['in_channels_list'], head_cfg['feats_channels'], kernel_size=3, stride=1, padding=1, bias=False),
             BuildNormalization(placeholder=head_cfg['feats_channels'], norm_cfg=norm_cfg),
             BuildActivation(act_cfg),
-        )
+        ))
         self.memory_module = FeaturesMemory(
             num_classes=cfg['num_classes'], feats_channels=head_cfg['feats_channels'], transform_channels=head_cfg['transform_channels'], num_feats_per_cls=head_cfg['num_feats_per_cls'],
             out_channels=head_cfg['out_channels'], use_context_within_image=context_within_image_cfg['is_on'], use_hard_aggregate=head_cfg['use_hard_aggregate'],
