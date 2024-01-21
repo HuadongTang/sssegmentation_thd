@@ -144,7 +144,7 @@ class MCIBI(BaseSegmentor):
         # feed to memory
         memory_input = self.bottleneck(backbone_outputs[-1])
         preds_stage1 = self.decoder_stage1(memory_input)
-        stored_memory, memory_output = self.memory_module(memory_input, preds_stage1, feats_ms)
+        stored_memory, memory_output = self.memory_module(memory_input, preds_stage1)
         # feed to decoder
         preds_stage2 = memory_output
         # forward according to the mode
@@ -156,7 +156,7 @@ class MCIBI(BaseSegmentor):
             preds_stage1 = F.interpolate(preds_stage1, size=img_size, mode='bilinear', align_corners=self.align_corners)
             outputs_dict.update({'loss_cls_stage1': preds_stage1, 'loss_cls_stage2': preds_stage2})
             apd_pred = self.get_adaptive_perspective(x=memory_input, y=targets['seg_target'].unsqueeze(1),
-                                                     new_proto=stored_memory.detach().squeeze(),
+                                                     new_proto=stored_memory.detach().data.squeeze(),
                                                      proto=stored_memory.squeeze())
             kl_loss = get_distill_loss(pred=memory_output, soft=apd_pred.detach(), target=targets['seg_target'])
             apd_pred = F.interpolate(apd_pred, size=img_size, mode='bilinear', align_corners=self.align_corners)
