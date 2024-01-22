@@ -142,7 +142,7 @@ class MCIBI(BaseSegmentor):
         fpn_out = torch.cat(fpn_outputs, dim=1)
         memory_input = self.bottleneck(fpn_out)
         # feed to memory
-        memory_input = self.bottleneck(backbone_outputs[-1])
+        # memory_input = self.bottleneck(backbone_outputs[-1])
         preds_stage1 = self.decoder_stage1(memory_input)
         stored_memory, memory_output = self.memory_module(memory_input, preds_stage1)
         # feed to decoder
@@ -176,13 +176,14 @@ class MCIBI(BaseSegmentor):
             dist.all_reduce(kl_value.div_(dist.get_world_size()))
             losses_log_dict['pre_loss'] = pre_value
             losses_log_dict['kl_loss'] = kl_value
-            total = losses_log_dict.pop('total') + losses_log_dict['kl_loss'] + losses_log_dict['pre_loss']
+            total = losses_log_dict.pop('loss_total') + losses_log_dict['kl_loss'] + losses_log_dict['pre_loss']
+            losses_log_dict['loss_total'] = total
             if (kwargs['epoch'] > 1) and self.cfg['head']['use_loss']:
                 loss_memory, loss_memory_log = self.calculatememoryloss(stored_memory)
                 loss += loss_memory
                 losses_log_dict['loss_memory'] = loss_memory_log
-                total = losses_log_dict.pop('total') + losses_log_dict['loss_memory']
-                losses_log_dict['total'] = total
+                total = losses_log_dict.pop('loss_total') + losses_log_dict['loss_memory']
+                losses_log_dict['loss_total'] = total
             return loss, losses_log_dict
         return preds_stage2
     '''norm'''
