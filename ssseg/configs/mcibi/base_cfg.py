@@ -52,4 +52,7 @@ SEGMENTOR_CFG = {
     },
     'dataset': None,
     'dataloader': None,
+    'build_dist_model_cfg': {
+    'find_unused_parameters':True
+    }
 }
